@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guide Micro:bit - Radio & Accéléromètre</title>
+    <style>
+        :root {
+            --primary: #00b4d8;
+            --secondary: #90e0ef;
+            --dark: #03045e;
+            --light: #f8f9fa;
+            --accent: #ff4d6d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: var(--light);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--dark), var(--primary));
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--primary);
+        }
+
+        h2 { color: var(--dark); border-bottom: 2px solid var(--secondary); padding-bottom: 0.5rem; }
+        
+        pre {
+            background: #2d3436;
+            color: #fab1a0;
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.9rem;
+        }
+
+        .interactive-zone {
+            background: #dfe6e9;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px dashed var(--primary);
+        }
+
+        #microbit-sim {
+            width: 120px;
+            height: 100px;
+            background: #333;
+            border-radius: 10px;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+            position: relative;
+        }
+
+        .led-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 10px);
+            gap: 4px;
+        }
+
+        .led { width: 10px; height: 10px; background: #444; border-radius: 2px; }
+        .led.active { background: #ff4d6d; box-shadow: 0 0 5px #ff4d6d; }
+
+        .controls { margin-top: 20px; }
+        button {
+            padding: 10px 20px;
+            background: var(--primary);
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background: var(--dark); }
+
+        .status { font-style: italic; color: var(--accent); margin-top: 10px; min-height: 24px;}
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🚀 Piloter par Radio avec l'Accéléromètre</h1>
+    <p>Le guide interactif pour tes projets Micro:bit</p>
+</header>
+
+<div class="container">
+
+    <div class="card">
+        <h2>1. C'est quoi le plan ?</h2>
+        <p>Tu vas transformer ton micro:bit en <strong>manette de jeu</strong>. Quand tu penches la carte, elle envoie un signal invisible (ondes radio) à une autre carte qui va réagir.</p>
+        <ul>
+            <li><strong>Canal :</strong> Doit être le même sur les deux cartes (ex: 42).</li>
+            <li><strong>Vitesse :</strong> On envoie les infos toutes les 100ms pour que ce soit fluide.</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>2. Teste l'inclinaison (Simulateur)</h2>
+        <p>Bouge les curseurs pour voir comment l'accéléromètre réagit et quel message serait envoyé par radio.</p>
+        
+        <div class="interactive-zone">
+            <div id="microbit-sim">
+                <div class="led-grid" id="leds">
+                    </div>
+            </div>
+            
+            <div class="controls">
+                <label>Inclinaison Avant/Arrière (Axe Y) :</label><br>
+                <input type="range" id="y-axis" min="-1024" max="1024" value="0" style="width:80%">
+                <p>Valeur Y : <span id="y-val">0</span></p>
+            </div>
+            <div class="status" id="radio-output">Radio : En attente...</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>3. Le Code de l'Émetteur (Ta Manette)</h2>
+        <p>Copie ce code dans l'éditeur Python de ton micro:bit :</p>
+        <pre>
+from microbit import *
+import radio
+
+radio.on()
+radio.config(channel=42) # Choisis ton canal favori
+
+while True:
+    y = accelerometer.get_y()
+    if y < -300:
+        radio.send("AVANT")
+        display.show(Image.ARROW_N)
+    elif y > 300:
+        radio.send("ARRIERE")
+        display.show(Image.ARROW_S)
+    else:
+        radio.send("STOP")
+        display.clear()
+    sleep(100)</pre>
+    </div>
+
+    <div class="card">
+        <h2>4. Le Code du Récepteur (Ton Robot)</h2>
+        <pre>
+from microbit import *
+import radio
+
+radio.on()
+radio.config(channel=42)
+
+while True:
+    msg = radio.receive()
+    if msg == "AVANT":
+        display.show("A")
+    elif msg == "ARRIERE":
+        display.show("R")
+    elif msg == "STOP":
+        display.clear()</pre>
+    </div>
+
+</div>
+
+<script>
+    // Création de la grille de LED
+    const grid = document.getElementById('leds');
+    for(let i=0; i<25; i++) {
+        const led = document.createElement('div');
+        led.className = 'led';
+        grid.appendChild(led);
+    }
+
+    const yInput = document.getElementById('y-axis');
+    const yVal = document.getElementById('y-val');
+    const radioOut = document.getElementById('radio-output');
+    const sim = document.getElementById('microbit-sim');
+    const leds = document.querySelectorAll('.led');
+
+    yInput.addEventListener('input', () => {
+        const val = parseInt(yInput.value);
+        yVal.innerText = val;
+        
+        // Simulation visuelle de l'inclinaison
+        const tilt = (val / 1024) * 30;
+        sim.style.transform = `rotateX(${tilt}deg)`;
+
+        // Logique de message
+        if (val < -300) {
+            radioOut.innerText = "📡 Radio : ENVOI 'AVANT'";
+            updateLeds([2, 7, 12, 17, 22, 1, 3, 6, 8]); // Flèche simplifiée
+        } else if (val > 300) {
+            radioOut.innerText = "📡 Radio : ENVOI 'ARRIERE'";
+            updateLeds([2, 7, 12, 17, 22, 16, 18, 21, 23]);
+        } else {
+            radioOut.innerText = "📡 Radio : ENVOI 'STOP'";
+            updateLeds([]);
+        }
+    });
+
+    function updateLeds(activeIndices) {
+        leds.forEach((led, i) => {
+            led.classList.toggle('active', activeIndices.includes(i));
+        });
+    }
+</script>
+
+</body>
+</html>
